@@ -1,0 +1,4 @@
+interface:
+  display_name: "HTML-intro-readme"
+  short_description: "把 README 转成有分镜、有真实成品展示、可离线播放的中文 HTML 动画"
+  default_prompt: "使用 $html-intro-readme，把这个项目的 README 转成可离线打开的 HTML 介绍动画，核实安装与启动步骤，并完成分镜、成品展示和浏览器验收。"

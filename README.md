@@ -1,0 +1,17 @@
+# HTML-intro-readme
+
+把项目 README 转成能播放、能暂停阅读、能复制安装与启动步骤的中文 HTML 介绍动画。
+
+完整技能入口：[SKILL.md](SKILL.md)。包含分镜定稿、真实成品展示、播放器、手机适配、离线打包与浏览器验收标准，以及可运行的本地打包和检查工具。
+
+下载完整仓库，放进 Agent 的技能目录，保留 `SKILL.md`、`agents/`、`references/` 与 `scripts/`。技能标识为 `html-intro-readme`，显示名称为 `HTML-intro-readme`。
+
+```text
+使用 $html-intro-readme，将这个仓库的 README 做成中文 HTML 介绍动画。
+仓库：[链接或本地项目]
+目标读者：[用户]
+播放顺序：[安装与启动 → 可选评分 → 是什么 → 真实成果 → 获取]
+交付目录：[本地路径]
+```
+
+制作在本地完成；托管、社交发布与 GitHub 同步按用户当次授权执行。
