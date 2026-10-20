@@ -14,7 +14,7 @@ node scripts/export_video.cjs --input /项目/项目介绍.html --output /项目
 
 省略 `--module` 时从 Node 模块解析路径寻找 Playwright；省略 `--browser` 时使用该 Playwright 已安装的 Chromium。所有路径由当前环境提供，脚本不绑定作者机器。
 
-默认导出整片：1920×1080、30 fps、H.264 MP4、约 8 Mbps 目标码率，无配音和配乐。默认自动选择 macOS 原生 AVFoundation；其他平台使用 FFmpeg 的 `libx264`。输出目录须已存在；已有 MP4、同名报告或检查目录时停止，避免覆盖。
+默认导出整片：16:9、1080p（1920×1080）、30 fps、H.264 MP4，无配音和配乐。未指定码率时，以 1080p / 30 fps 的 8 Mbps 为基准，按像素数和帧率同比例调整，最低 2 Mbps；可用 `--bitrate` 手动指定。默认自动选择 macOS 原生 AVFoundation；其他平台使用 FFmpeg 的 `libx264`。输出目录须已存在；已有 MP4、同名报告或检查目录时停止，避免覆盖。
 
 先导出一小段检查版式和动效：
 
@@ -22,7 +22,29 @@ node scripts/export_video.cjs --input /项目/项目介绍.html --output /项目
 node scripts/export_video.cjs --input /项目/项目介绍.html --output /项目/预览.mp4 --start 25 --duration 10 --module /依赖/playwright-core --browser /浏览器可执行文件
 ```
 
-`--start` 是源片秒数，`--duration` 是片段长度。实际输出取整为完整帧，时长误差最多半帧，报告同时记录请求长度、帧数和实际长度。不指定 `--duration` 时输出到原片结束。默认裁取 `#screen` 动画区域，移除网页外框；通过 `--selector`、`--viewport-width` 和 `--css` 适配其他布局。更改横竖屏比例时重新审阅排版，不能仅拉伸画面。
+`--start` 是源片秒数，`--duration` 是片段长度。实际输出取整为完整帧，时长误差最多半帧，报告同时记录请求长度、帧数和实际长度。不指定 `--duration` 时输出到原片结束。默认裁取 `#screen` 动画区域，移除网页外框；通过 `--selector`、`--viewport-width`、`--fit` 和 `--css` 适配其他布局，始终等比编码。
+
+## 比例、清晰度与帧率自由组合
+
+`--aspect` 可选 `4:3`、`3:4`、`16:9`、`9:16`；`--resolution` 可选 `720p`、`1080p`、`4k`（大小写均可）；`--fps` 可选 30、60、120。三项独立组合，共 36 种标准预设，仍兼容 1–120 的其他整数帧率。
+
+清晰度按短边定义：720p 为 720 像素、1080p 为 1080 像素、4K 档为 2160 像素；实际尺寸如下，避免非 16:9 时含糊标注。
+
+| 比例 | 720p | 1080p | 4K 档 |
+|---|---|---|---|
+| 4:3 | 960×720 | 1440×1080 | 2880×2160 |
+| 3:4 | 720×960 | 1080×1440 | 2160×2880 |
+| 16:9 | 1280×720 | 1920×1080 | 3840×2160 |
+| 9:16 | 720×1280 | 1080×1920 | 2160×3840 |
+
+```bash
+node scripts/export_video.cjs --input /项目/项目介绍.html --output /项目/介绍-4比3-720p120.mp4 --aspect 4:3 --resolution 720p --fps 120 --module /依赖/playwright-core --browser /浏览器可执行文件
+node scripts/export_video.cjs --input /项目/项目介绍.html --output /项目/介绍-竖屏-4k60.mp4 --aspect 9:16 --resolution 4k --fps 60 --module /依赖/playwright-core --browser /浏览器可执行文件
+```
+
+`--fit contain` 为默认：沿用 HTML 原构图，将整幅画面等比放入目标视频，空余区域留白，避免改变比例或裁掉文字。`--fit reflow` 将网页画布调整为目标比例；竖屏默认采用 720px 内容视口，触发原网页已有的响应式规则，可用 `--viewport-width` 和 `--css` 提供专用排版。重排效果取决于项目本身的 CSS；本次按用户要求只改代码，不进行版式和导出验证。
+
+`--width` 与 `--height` 继续支持自定义像素尺寸，但需同时提供，且不与 `--aspect` / `--resolution` 混用。参数选择会记录在 `.video.json`。编码器或硬件不支持某个尺寸／帧率时直接报错，不静默降低到别的预设。预设支持范围不代表所有设备都能实时处理 4K / 120 fps。
 
 ## NVIDIA 与 Mac 硬件编码
 
@@ -89,4 +111,6 @@ window.htmlIntroVideo = {
 
 ## 当前验证范围
 
-本版本已在 macOS + Chrome 上验证既有 film-v3 的 1080p / 30 fps 片段导出、新接口的自定义尺寸与帧率、强制硬件编码、完整解码及分镜抽帧。另检查已有产物不被覆盖、编码器缺失时停止。Windows / Linux 与 NVIDIA NVENC 路径已提供代码和调用参数，尚未在对应硬件上实测，不能将 Mac 上的结果当成其性能数据。
+以下为 1.1.x 的历史验证范围，不覆盖 1.2.0 的新增预设：已在 macOS + Chrome 上验证既有 film-v3 的 1080p / 30 fps 片段导出、新接口的自定义尺寸与帧率、强制硬件编码、完整解码及分镜抽帧。另检查已有产物不被覆盖、编码器缺失时停止。Windows / Linux 与 NVIDIA NVENC 路径已提供代码和调用参数，尚未在对应硬件上实测，不能将 Mac 上的结果当成其性能数据。
+
+1.2.0：四比例、三档清晰度、三档标准帧率以及 contain / reflow 的代码与调用文档已更新。遵照本次用户要求，未执行新增组合、编码、试导出或验证，不宣称已通过。

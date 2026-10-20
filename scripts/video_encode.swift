@@ -65,9 +65,14 @@ while true {
         guard let pool = adaptor.pixelBufferPool,
               CVPixelBufferPoolCreatePixelBuffer(nil, pool, &buffer) == kCVReturnSuccess,
               let pixels = buffer else { fatalError("Pixel buffer allocation failed") }
-        let fitted = image.transformed(by: CGAffineTransform(scaleX: CGFloat(width)/image.extent.width,
-                                                            y: CGFloat(height)/image.extent.height))
-        context.render(fitted, to: pixels)
+        let scale = min(CGFloat(width)/image.extent.width, CGFloat(height)/image.extent.height)
+        let offsetX = (CGFloat(width)-image.extent.width*scale)/2
+        let offsetY = (CGFloat(height)-image.extent.height*scale)/2
+        let fitted = image.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+            .transformed(by: CGAffineTransform(translationX: offsetX, y: offsetY))
+        let bounds = CGRect(x: 0, y: 0, width: CGFloat(width), height: CGFloat(height))
+        let white = CIImage(color: CIColor(red: 1, green: 1, blue: 1, alpha: 1)).cropped(to: bounds)
+        context.render(fitted.composited(over: white).cropped(to: bounds), to: pixels)
         guard adaptor.append(pixels, withPresentationTime: CMTime(value: count, timescale: fps)) else {
             fatalError("Encoding failed: \(String(describing: writer.error))")
         }

@@ -2,7 +2,7 @@
 name: html-intro-readme
 description: 将项目 README、SKILL 与公开成品示例转换为中文 HTML 介绍动画，完成分镜定稿、按时间轴播放、移动端适配、离线单文件与浏览器验收；HTML 完成后可按用户要求选做 MP4 视频导出。适用于“README 做成网页动画”“项目介绍像视频播放”“把安装、用法和成品讲清楚”“HTML 动画导出视频”。
 metadata:
-  version: 1.1.1
+  version: 1.2.0
 ---
 
 # HTML-intro-readme
@@ -27,7 +27,7 @@ metadata:
 
 HTML 制作和验收完成后，用户要求将网页动画视频化时，读取[视频导出流程](references/video-export.md)，使用 `scripts/export_video.cjs` 导出整片或指定片段。新播放器暴露 `window.htmlIntroVideo.describe()/seek()`，既有 film-v3 可用兼容模式。先核对实际输入版本，保持原文案、顺序、截图与动效；不默认增加配音或配乐。
 
-脚本支持 macOS 原生编码，以及 FFmpeg 软件 / NVENC / VideoToolbox 编码；硬件状态按实际结果记录。编码完成后完整解码、核对帧数和时长、按屏抽帧；人工查看画面与动效后交付。MP4 不替代可复制提示词、可放大图片的网页原件。
+脚本支持 4:3 / 3:4 / 16:9 / 9:16、720p / 1080p / 4K、30 / 60 / 120 fps 自由组合；默认完整画面等比留白，可选按目标比例重排。脚本支持 macOS 原生编码，以及 FFmpeg 软件 / NVENC / VideoToolbox 编码；硬件状态按实际结果记录。编码完成后完整解码、核对帧数和时长、按屏抽帧；人工查看画面与动效后交付。MP4 不替代可复制提示词、可放大图片的网页原件。
 
 ## 必须保留的约束
 

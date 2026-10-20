@@ -34,6 +34,7 @@
 | HTML 制作、验收与交付完成后，可按用户要求选做视频版 | SKILL.md 视频版；video-export.md |
 | 可直接调用脚本导出整片与片段 | scripts/export_video.cjs |
 | 保留原文案、顺序、动效，不默认配音配乐 | video-export.md 时间轴接口与交付；quality-standard.md 视频版 |
+| 四种比例、720p / 1080p / 4K 与 30 / 60 / 120 fps 自由组合；本次不做验证 | export_video.cjs 预设参数；video_encode.swift 等比合成；video-export.md 参数表 |
 | Mac 原生编码、可选 NVIDIA NVENC，不编造加速倍数 | video-export.md 硬件编码；video_encode.swift |
 | 完整解码、逐屏抽帧、来源哈希与实际检查结果 | video_check.swift；export_video.cjs；quality-standard.md 交付验收 |
 

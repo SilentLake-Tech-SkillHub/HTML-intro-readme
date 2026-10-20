@@ -9,7 +9,10 @@ const help=`Usage: node scripts/export_video.cjs --input intro.html --output int
   --encoder auto|avfoundation|software|nvenc|videotoolbox  (auto: macOS native; others software)
   --hardware prefer|require|off  macOS native only; default prefer
   --ffmpeg PATH --ffprobe PATH  Defaults to executables on PATH
-  --fps 30 --width 1920 --height 1080 --bitrate 8000000
+  --aspect 4:3|3:4|16:9|9:16 --resolution 720p|1080p|4k --fps 30|60|120
+  --fit contain|reflow     Default contain: preserve the HTML composition, pad with white
+  --width PIXELS --height PIXELS  Custom dimensions instead of aspect/resolution presets
+  --bitrate BITS_PER_SECOND      Optional; otherwise scales with pixels and frame rate
   --start 0 --duration SECONDS  Optional preview; omitted duration exports to the end
   --viewport-width 1440 --selector '#screen' --css custom-export.css
   --clock auto|api|legacy  Prefer window.htmlIntroVideo; legacy supports the existing film-v3 tick clock
@@ -17,7 +20,7 @@ const help=`Usage: node scripts/export_video.cjs --input intro.html --output int
 Output: MP4 + .video.json + .checks/ (full decode report and scene samples).
 Existing outputs are never overwritten. Audio is not captured or added.`;
 function parse(argv){
- const known=new Set(['input','output','module','browser','encoder','hardware','ffmpeg','ffprobe','fps','width','height','bitrate','start','duration','viewport-width','selector','css','clock','capture']);
+ const known=new Set(['input','output','module','browser','encoder','hardware','ffmpeg','ffprobe','fps','width','height','bitrate','aspect','resolution','fit','start','duration','viewport-width','selector','css','clock','capture']);
  const o={};for(let i=0;i<argv.length;i+=2){const k=argv[i].replace(/^--/,'');
   if(!argv[i].startsWith('--')||!known.has(k)||argv[i+1]===undefined)throw Error('Unknown/incomplete option: '+argv[i]);
   if(o[k]!==undefined)throw Error('Repeated option: '+k);o[k]=argv[i+1];}return o;
@@ -25,6 +28,24 @@ function parse(argv){
 const sha=data=>crypto.createHash('sha256').update(data).digest('hex');
 function numeric(o,k,d,{min=0,integer=false}={}){const n=o[k]===undefined?d:Number(o[k]);if(!Number.isFinite(n)||n<min||(integer&&!Number.isInteger(n)))throw Error('Invalid --'+k);return n;}
 function choice(o,k,d,values){const v=o[k]||d;if(!values.includes(v))throw Error('Invalid --'+k);return v;}
+const EXPORT_SIZES={
+ '4:3': {'720p':[960,720],'1080p':[1440,1080],'4k':[2880,2160]},
+ '3:4': {'720p':[720,960],'1080p':[1080,1440],'4k':[2160,2880]},
+ '16:9':{'720p':[1280,720],'1080p':[1920,1080],'4k':[3840,2160]},
+ '9:16':{'720p':[720,1280],'1080p':[1080,1920],'4k':[2160,3840]}
+};
+function exportSize(o){
+ if(o.width!==undefined||o.height!==undefined){
+  if(o.width===undefined||o.height===undefined)throw Error('Provide both --width and --height');
+  if(o.aspect!==undefined||o.resolution!==undefined)throw Error('Choose custom dimensions OR aspect/resolution presets');
+  const width=numeric(o,'width',0,{min:2,integer:true}),height=numeric(o,'height',0,{min:2,integer:true});
+  return {width,height,aspect:`${width}:${height}`,resolution:'custom'};
+ }
+ const aspect=choice(o,'aspect','16:9',Object.keys(EXPORT_SIZES));
+ const resolution=(o.resolution||'1080p').toLowerCase();
+ if(!['720p','1080p','4k'].includes(resolution))throw Error('Invalid --resolution; use 720p, 1080p or 4k');
+ const [width,height]=EXPORT_SIZES[aspect][resolution];return {width,height,aspect,resolution};
+}
 function run(command,args,options={}){
  return new Promise((resolve,reject)=>{
   const child=spawn(command,args,{stdio:['ignore','pipe','pipe'],...options});let stdout='',stderr='';
@@ -71,11 +92,13 @@ async function main(){
  if(!fs.existsSync(path.dirname(output)))throw Error('Output parent directory must already exist');
  const reportFile=output.replace(/\.mp4$/i,'.video.json'),checks=output.replace(/\.mp4$/i,'.checks');
  for(const f of [output,reportFile,checks])if(fs.existsSync(f))throw Error('Refusing to overwrite: '+f);
- const width=numeric(o,'width',1920,{min:2,integer:true}),height=numeric(o,'height',1080,{min:2,integer:true}),
-  fps=numeric(o,'fps',30,{min:1,integer:true}),bitrate=numeric(o,'bitrate',8000000,{min:10000,integer:true}),
-  vpWidth=numeric(o,'viewport-width',1440,{min:100,integer:true}),start=numeric(o,'start',0);
+ const {width,height,aspect,resolution}=exportSize(o),fit=choice(o,'fit','contain',['contain','reflow']);
+ const fps=numeric(o,'fps',30,{min:1,integer:true});
+ const automaticBitrate=Math.max(2000000,Math.round(8000000*(width*height)/(1920*1080)*(fps/30)));
+ const bitrate=numeric(o,'bitrate',automaticBitrate,{min:10000,integer:true});
+ const vpWidth=numeric(o,'viewport-width',fit==='reflow'&&width<height?720:1440,{min:100,integer:true}),start=numeric(o,'start',0);
  if(width%2||height%2||fps>120)throw Error('Use even pixel dimensions and an integer fps <=120');
- const vpHeight=Math.round(vpWidth*height/width),clock=choice(o,'clock','auto',['auto','api','legacy']),
+ const vpHeight=Math.round(vpWidth*(fit==='reflow'?height/width:9/16)),clock=choice(o,'clock','auto',['auto','api','legacy']),
   capture=choice(o,'capture','cdp',['cdp','playwright']),hardware=choice(o,'hardware','prefer',['prefer','require','off']);
  let encoder=choice(o,'encoder','auto',['auto','avfoundation','software','nvenc','videotoolbox']);
  if(encoder==='auto')encoder=process.platform==='darwin'?'avfoundation':'software';
@@ -119,7 +142,10 @@ async function main(){
   const selector=o.selector||'#screen',screen=page.locator(selector);
   if(await screen.count()!==1)throw Error('--selector must resolve to exactly one element');
   await page.addStyleTag({content:`.cinema{max-width:none!important;width:${vpWidth}px!important;margin:0!important;padding:0!important}.topbar{display:none!important}.progress-dots i{transition:none!important}`});
-  await screen.evaluate((el,size)=>{Object.assign(el.style,{width:size.width+'px',height:size.height+'px',minHeight:'0',border:'0',borderRadius:'0',boxShadow:'none',aspectRatio:'auto'});}, {width:vpWidth,height:vpHeight});
+  await screen.evaluate((el,size)=>{
+   Object.assign(el.style,{width:size.width+'px',minHeight:'0',border:'0',borderRadius:'0',boxShadow:'none'});
+   if(size.fit==='reflow'){el.style.height=size.height+'px';el.style.aspectRatio='auto';}
+  }, {width:vpWidth,height:vpHeight,fit});
   if(css)await page.addStyleTag({content:css});
   await page.evaluate(async()=>{await document.fonts.ready;await Promise.all([...document.images].filter(i=>i.getAttribute('src')).map(i=>i.decode().catch(()=>{})));});
   const bad=await page.locator('img[src]').evaluateAll(imgs=>imgs.filter(i=>i.getAttribute('src')&&(!i.complete||!i.naturalWidth)).map(i=>i.alt||'unnamed image'));
@@ -132,7 +158,7 @@ async function main(){
   const args=encoder==='avfoundation'?[temporary,String(width),String(height),String(fps),String(bitrate),hardware,String(frames)]:
    ['-hide_banner','-loglevel','error','-f','image2pipe','-framerate',String(fps),'-vcodec','mjpeg','-i','pipe:0','-an','-c:v',selected,
     ...(encoder==='nvenc'?['-preset','p4']:encoder==='software'?['-preset','medium']:['-allow_sw','0']),
-    '-pix_fmt','yuv420p','-vf',`scale=${width}:${height}`,'-b:v',String(bitrate),'-movflags','+faststart',temporary];
+    '-pix_fmt','yuv420p','-vf',`scale=${width}:${height}:force_original_aspect_ratio=decrease:force_divisible_by=2,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:color=white,setsar=1`,'-b:v',String(bitrate),'-movflags','+faststart',temporary];
   child=spawn(encoder==='avfoundation'?native.video_encode:o.ffmpeg||'ffmpeg',args,{stdio:['pipe','pipe','pipe']});
   let encoderError,encoderStderr='';child.stdin.on('error',e=>encoderError=e);child.stderr.on('data',d=>encoderStderr=(encoderStderr+d).slice(-8000));
   child.stdout.on('data',d=>process.stdout.write(d));
@@ -175,7 +201,7 @@ async function main(){
   }
   if(sha(fs.readFileSync(input))!==sourceSha256)throw Error('Source changed during export; use a frozen offline HTML');
   const manifest={version:1,input:path.basename(input),sourceSha256,cssSha256:css?sha(css):null,
-   output:path.basename(output),width,height,fps,frames,seconds,sourceDuration:metadata.duration,start,requestedDuration,
+   output:path.basename(output),width,height,aspect,resolution,fit,bitrate,sourceViewport:{width:vpWidth,height:vpHeight},fps,frames,seconds,sourceDuration:metadata.duration,start,requestedDuration,
    clock:mode,capture,scenes:metadata.scenes,samples,encoderRequested:o.encoder||'auto',encoderSelected:encoder,
    hardwareRequested:encoder==='avfoundation'?hardware:encoder==='software'?'off':'require',
    hardwareUsed:encoder==='avfoundation'?(hardware==='require'?true:hardware==='off'?false:'unknown'):encoder!=='software',
