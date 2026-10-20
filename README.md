@@ -17,3 +17,22 @@
 ```
 
 制作在本地完成；托管、社交发布与 GitHub 同步按用户当次授权执行。
+
+## 导出视频版
+
+本技能也负责把确认好的项目介绍动画导出为 MP4，保留原有文案、播放顺序和动效。默认 1080p、30 fps、无配音配乐，可导出整片或指定片段；原网页继续用于复制提示词和放大图片。
+
+```bash
+node scripts/export_video.cjs --input /项目/项目介绍.html --output /项目/项目介绍.mp4 --module /依赖/playwright-core --browser /浏览器可执行文件
+```
+
+Mac 默认使用原生编码；NVIDIA 电脑可指定 `--encoder nvenc` 调用支持 NVENC 的 FFmpeg。脚本自动完整解码验收并逐屏抽帧，输出视频、来源与参数报告、验收图片。依赖、时间轴接口、片段参数和硬件加速说明见[视频导出流程](references/video-export.md)。
+
+也可以直接对 Agent 说：
+
+```text
+使用 $html-intro-readme，把这份已确认的项目介绍 HTML 导出为 MP4。
+输入：[本地 HTML 路径]
+输出：[本地 MP4 路径]
+保留当前版本的顺序、文案和动效，完成视频验收。
+```

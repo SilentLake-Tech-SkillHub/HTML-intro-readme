@@ -4,4 +4,7 @@ __pycache__/
 node_modules/
 checks/
 *.tmp
+*.mp4
+*.video.json
+*.checks/
 

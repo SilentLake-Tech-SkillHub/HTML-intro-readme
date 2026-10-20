@@ -27,6 +27,16 @@
 | 1440×900 与 390×844、24 张截图、无错误 | check_browser.cjs；quality-standard.md 完整验收清单 |
 | 本地交付、旧版归档、授权后 GitHub 同步 | SKILL.md 最后两条约束；workflow.md 第 4–5 节 |
 
+## 后续视频能力
+
+| 要求 | 对应位置 |
+|---|---|
+| 项目介绍动画可同时制作视频版 | SKILL.md 视频版；video-export.md |
+| 可直接调用脚本导出整片与片段 | scripts/export_video.cjs |
+| 保留原文案、顺序、动效，不默认配音配乐 | video-export.md 时间轴接口与交付；quality-standard.md 视频版 |
+| Mac 原生编码、可选 NVIDIA NVENC，不编造加速倍数 | video-export.md 硬件编码；video_encode.swift |
+| 完整解码、逐屏抽帧、来源哈希与实际检查结果 | video_check.swift；export_video.cjs；quality-standard.md 交付验收 |
+
 ## 案例素材表
 
 下列文件均来自该项目已经公开的 README 示例。技能仓库不附课程原件或截图副本。

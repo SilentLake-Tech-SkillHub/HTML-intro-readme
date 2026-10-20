@@ -1,13 +1,13 @@
 ---
 name: html-intro-readme
-description: 将项目 README、SKILL 与公开成品示例转换为中文 HTML 介绍动画，完成分镜定稿、按时间轴播放、移动端适配、离线单文件与浏览器验收。适用于“README 做成网页动画”“项目介绍像视频播放”“把安装、用法和成品讲清楚”。
+description: 将项目 README、SKILL 与公开成品示例转换为中文 HTML 介绍动画，完成分镜定稿、按时间轴播放、移动端适配、离线单文件、MP4 视频导出与验收。适用于“README 做成网页动画”“项目介绍像视频播放”“把安装、用法和成品讲清楚”“HTML 动画导出视频”。
 metadata:
-  version: 1.0.0
+  version: 1.1.0
 ---
 
 # HTML-intro-readme
 
-把 README 变成能播放、能停下来阅读、能复制操作步骤的本地 HTML 介绍。交付可独立打开的单文件，并保留可编辑源码、文案与验收证据。
+把 README 变成能播放、能停下来阅读、能复制操作步骤的本地 HTML 介绍。交付可独立打开的单文件，并保留可编辑源码、文案与验收证据。用户要求视频版时，复用同一时间轴导出 MP4。
 
 ## 工作顺序
 
@@ -21,6 +21,12 @@ metadata:
 具体操作顺序与交付目录见[执行流程](references/workflow.md)。需要一份经过实作的分镜、节奏和评分示例时，读[oh-my-ntu 案例](references/oh-my-ntu-example.md)；示例中的课程、平台和分数仅属于该案例。
 
 对照本次需求的覆盖范围时，读[需求与标准映射](references/requirements-map.md)。
+
+## 视频版
+
+用户要求将网页动画视频化时，读取[视频导出流程](references/video-export.md)，使用 `scripts/export_video.cjs` 导出整片或指定片段。新播放器暴露 `window.htmlIntroVideo.describe()/seek()`，既有 film-v3 可用兼容模式。先核对实际输入版本，保持原文案、顺序、截图与动效；不默认增加配音或配乐。
+
+脚本支持 macOS 原生编码，以及 FFmpeg 软件 / NVENC / VideoToolbox 编码；硬件状态按实际结果记录。编码完成后完整解码、核对帧数和时长、按屏抽帧；人工查看画面与动效后交付。MP4 不替代可复制提示词、可放大图片的网页原件。
 
 ## 必须保留的约束
 
